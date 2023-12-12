@@ -3,18 +3,46 @@ from tqdm import tqdm
 import math
 import torch
 from torch_geometric.data import Data
+import rdkit.Chem as Chem
 from utils import get_mol, sanitize, get_smiles, sanitize_smiles, get_fragment_mol, get_complement_fragment_mol
 device = torch.device("cuda:0")
 softmax = torch.nn.Softmax(dim=1).to(device)
 sig = torch.nn.Sigmoid().to(device)
 import numpy as np
 
+class TreeNode:
+    def __init__(self, value, smiles):
+        self.value = value
+        self.smiles = smiles
+        self.children = []
+
+    def add_child(self, child_node):
+        self.children.append(child_node)
+
+    def __repr__(self, level=0):
+        ret = "\t" * level + repr(self.value) + "\n"
+        for child in self.children:
+            ret += child.__repr__(level + 1)
+        return ret
+
 class MotifPiece:
     def __init__(self, smiles_list) -> None:
         self.smiles_list = smiles_list
         self.motif_explanation = defaultdict(int)
-        self.motifs_list = defaultdict(lambda: defaultdict(int))
+        self.motifs_mapping = defaultdict(self.create_int_defaultdict)
         self.process()
+
+    def create_int_defaultdict(self):
+        return defaultdict(int)
+    
+    def smiles_from_atomic_number(self, atomic_number):
+        # Create a molecule with a single atom using its atomic number
+        atom = Chem.Atom(atomic_number)
+        mol = Chem.RWMol()
+        mol.AddAtom(atom)
+        # Convert the molecule to a SMILES string
+        smiles = Chem.MolToSmiles(mol)
+        return smiles
 
     def initialize_node(self, mol):
         """
@@ -44,43 +72,51 @@ class MotifPiece:
             s_dict[startid].append(id)
             s_dict[endid].append(id)
         
+        motif_list = []
         for atom in mol.GetAtoms():
             id = atom.GetIdx()
+            motif_list.append(self.smiles_from_atomic_number(atom.GetAtomicNum()))
             v_dict[id] = [id]
             if id not in s_dict:
                 s_dict[id] = []
-    
 
-        return s_dict, v_dict, e_dict, len(v_dict), len(e_dict)
+        tree_nodes = []
+        for i, motif in enumerate(motif_list):
+            tree_nodes.append(TreeNode(i, motif))
+
+        return s_dict, v_dict, e_dict, len(v_dict), len(e_dict), tree_nodes
 
     def process(self):
         iteration = 0
         s_dict_list = []
         v_dict_list = []
         e_dict_list = []
+
         mol_list = []
         max_node_list = []
         max_edge_list = []
+        tree_list = []
+        self.motif_list = [defaultdict(list) for x in self.smiles_list]
         while True:
             motif_count = defaultdict(int)
             motif_indices = {}
-            motif_a_i_score = defaultdict(list)
             for i, smiles in enumerate(tqdm(self.smiles_list)):
                 if iteration == 0:
-                    mol = get_mol(smiles)
-                    mol = sanitize(mol)
+                    mol = get_mol(smiles, False)
+                    mol = sanitize(mol, False)
                     if mol == None:
                         print("None mol")
                         continue
-                    s_dict, v_dict, e_dict, max_node, max_edge = self.initialize_node(mol)
+                    s_dict, v_dict, e_dict, max_node, max_edge, tree_nodes = self.initialize_node(mol)
                     s_dict_list.append(s_dict)
                     v_dict_list.append(v_dict)
                     e_dict_list.append(e_dict)
+                    tree_list.append(tree_nodes)
                     max_node_list.append(max_node)
                     max_edge_list.append(max_edge)
                     mol_list.append(mol)
                 else:
-                    mol, s_dict, v_dict, e_dict, max_node, max_edge = mol_list[i], s_dict_list[i], v_dict_list[i], e_dict_list[i], max_node_list[i], max_edge_list[i]
+                    mol, s_dict, v_dict, e_dict, max_node, max_edge, tree_nodes = mol_list[i], s_dict_list[i], v_dict_list[i], e_dict_list[i], max_node_list[i], max_edge_list[i], tree_list[i]
                 
                 ### Check all possible motif candidate which is a pair of node
                 for e_id, node_pair in e_dict.items():
@@ -99,12 +135,6 @@ class MotifPiece:
                         motif_indices[m_smiles][i] = [e_id]
                     else:
                         motif_indices[m_smiles][i].append(e_id)
-                    
-                    if m_smiles not in motif_a_i_score:
-                        motif_a_i_score[m_smiles] = defaultdict(list)
-                        motif_a_i_score[m_smiles][i] = [a_i]
-                    else:
-                        motif_a_i_score[m_smiles][i].append(a_i)
 
             ### Select the best motif candidate
             selected_motif = None
@@ -130,17 +160,13 @@ class MotifPiece:
 
             if selected_motif == None:
                 break
-            self.motif_explanation[selected_motif] += 1
             merge_indices = motif_indices[selected_motif]
-            merge_a_i = motif_a_i_score[selected_motif]
+            self.motif_explanation[selected_motif] += len(merge_indices)
+            
             
             ### Merge selected motif in the graph
             for id, edge_list in merge_indices.items():
                 count_merged_motif = 0
-                a_i_list = merge_a_i[id]
-                zip_pair = zip(edge_list, a_i_list)
-                sorted_pair = sorted(zip_pair, key=lambda x: x[1])
-                sorted_edge_list, sorted_a_i_list = zip(*sorted_pair)
                 # print(a_i_list)
                 # print(sorted_a_i_list)
                 # print(edge_list)
@@ -148,10 +174,10 @@ class MotifPiece:
                 # print(stop)
                 
                 merged_set = set()
-                s_dict, v_dict, e_dict, max_node, max_edge = s_dict_list[id], v_dict_list[id], e_dict_list[id], max_node_list[id], max_edge_list[id]
+                s_dict, v_dict, e_dict, max_node, max_edge, tree_nodes = s_dict_list[id], v_dict_list[id], e_dict_list[id], max_node_list[id], max_edge_list[id], tree_list[id]
                 node_list_edge = []
                 
-                for e in sorted_edge_list:
+                for e in edge_list:
                     node_pair = e_dict[e]
                     node_1 = node_pair[0]
                     node_2 = node_pair[1]
@@ -162,7 +188,7 @@ class MotifPiece:
                     if node_1 not in s_dict or node_2 not in s_dict:
                         print("Huge Error!")
                         print(stop)
-                for i, e in enumerate(sorted_edge_list):
+                for i, e in enumerate(edge_list):
                     node_pair = node_list_edge[i]
                     node_1 = node_pair[0]
                     node_2 = node_pair[1]
@@ -174,6 +200,15 @@ class MotifPiece:
                     merged_node_list = list(set(v_dict[node_1]+v_dict[node_2]))
 
                     v_dict[max_node] = merged_node_list
+                    self.motif_list[id][selected_motif].append(merged_node_list)
+
+                    # Create a new tree node for max node
+                    tree_node_1 = tree_nodes[node_1]
+                    tree_node_2 = tree_nodes[node_2]
+                    new_tree_node = TreeNode(max_node, selected_motif)
+                    new_tree_node.add_child(tree_node_1)
+                    new_tree_node.add_child(tree_node_2)
+                    tree_nodes.append(new_tree_node)
 
                     edge_node_1 = s_dict[node_1]
                     edge_node_2 = s_dict[node_2]
@@ -207,14 +242,23 @@ class MotifPiece:
                     del v_dict[node_1], v_dict[node_2], s_dict[node_1], s_dict[node_2]
                     max_node += 1
                     max_edge += count_added_edge
-                self.motifs_list[id][selected_motif] += count_merged_motif
-                s_dict_list[id], v_dict_list[id], e_dict_list[id], max_node_list[id], max_edge_list[id] = s_dict, v_dict, e_dict, max_node, max_edge
+                self.motifs_mapping[id][selected_motif] += count_merged_motif
+                s_dict_list[id], v_dict_list[id], e_dict_list[id], max_node_list[id], max_edge_list[id], tree_list[id] = s_dict, v_dict, e_dict, max_node, max_edge, tree_nodes
 
             iteration += 1
         print(f"The final motif explanation: {self.motif_explanation}")
         self.s_dict_list = s_dict_list
         self.v_dict_list = v_dict_list
         self.e_dict_list = e_dict_list
+        self.tree_root_list = []
+        for i, smiles in enumerate(tqdm(self.smiles_list)):
+            v_dict, tree_nodes, max_node = v_dict_list[i], tree_list[i], max_node_list[i]
+            if len(v_dict) == 1:
+                self.tree_root_list.append(tree_nodes[-1])
+            new_tree_node = TreeNode(max_node, smiles)
+            for key, _ in v_dict.items():
+                new_tree_node.add_child(tree_nodes[key])
+            self.tree_root_list.append(new_tree_node)
 
     def inference(self):
         all_motif_smiles = []
@@ -222,8 +266,8 @@ class MotifPiece:
         print("hhh")
         for i in tqdm(range(len(self.smiles_list))):
             s_dict, v_dict, e_dict, smiles = self.s_dict_list[i], self.v_dict_list[i], self.e_dict_list[i], self.smiles_list[i]
-            mol = get_mol(smiles)
-            mol = sanitize(mol)
+            mol = get_mol(smiles, False)
+            mol = sanitize(mol, False)
             motif_smiles_list = []
             s_id_list = []
 

@@ -293,7 +293,7 @@ def to_smiles(data: 'torch_geometric.data.Data',
 
     if kekulize:
         Chem.Kekulize(mol, clearAromaticFlags=True)
-    mol = sanitize(mol)
+    mol = sanitize(mol, True)
     if mol is None:
         # import ipdb; ipdb.set_trace()
         # print(stop)
@@ -305,6 +305,8 @@ def to_smiles(data: 'torch_geometric.data.Data',
     return Chem.MolToSmiles(mol, isomericSmiles=True)
 
 def to_tudataset(mol, data_name, label=None):
+    if mol == None:
+        return None
     if mol.GetNumAtoms() == 0 and mol.GetNumBonds() == 0:
         return None
     rdmolops.AssignStereochemistry(mol)
