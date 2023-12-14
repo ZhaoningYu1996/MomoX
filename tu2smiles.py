@@ -293,7 +293,7 @@ def to_smiles(data: 'torch_geometric.data.Data',
 
     if kekulize:
         Chem.Kekulize(mol, clearAromaticFlags=True)
-    mol = sanitize(mol, True)
+    mol = sanitize(mol, False)
     if mol is None:
         # import ipdb; ipdb.set_trace()
         # print(stop)

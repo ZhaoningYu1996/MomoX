@@ -2,8 +2,8 @@ import torch
 import random
 from torch_geometric.datasets import TUDataset
 from model import GCN, GCN2, GAT
-from tu2smiles import to_smiles
-from utils import sanitize_smiles
+from tu2smiles import to_smiles, to_tudataset
+from utils import sanitize_smiles, get_mol, sanitize
 from heterdataset import HeterDataset
 from split import split_list
 
@@ -21,16 +21,22 @@ torch.manual_seed(12345)
 
 # # Clean the dataset
 # indices = []
+# cleaned_dataset = []
 # for i, data in enumerate(dataset):
 #     smiles = to_smiles(data, True, data_name)
 #     smiles = sanitize_smiles(smiles)
 #     if not smiles == None:
 #         indices.append(i)
-# dataset = dataset[indices]
-
-# dataset = dataset.shuffle()
-# train_dataset = dataset[:2450]
-# test_dataset = dataset[2450:]
+#         mol = sanitize(get_mol(smiles, False), False)
+#         data = to_tudataset(mol, data_name, data.y)
+#         cleaned_dataset.append(data)
+        
+# # dataset = dataset[indices]
+# random.shuffle(cleaned_dataset)
+# print(len(cleaned_dataset))
+# # dataset = dataset.shuffle()
+# train_dataset = dataset[:2841]
+# test_dataset = dataset[2841:]
 
 # torch.save(train_dataset, "checkpoints/train_dataset_mutagenicity.pt")
 # torch.save(test_dataset, "checkpoints/test_dataset_mutagenicity.pt")
