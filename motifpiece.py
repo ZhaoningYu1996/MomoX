@@ -9,6 +9,7 @@ device = torch.device("cuda:0")
 softmax = torch.nn.Softmax(dim=1).to(device)
 sig = torch.nn.Sigmoid().to(device)
 import numpy as np
+import os
 
 class TreeNode:
     def __init__(self, value, smiles):
@@ -27,10 +28,21 @@ class TreeNode:
 
 class MotifPiece:
     def __init__(self, smiles_list) -> None:
-        self.smiles_list = smiles_list
-        self.motif_explanation = defaultdict(int)
-        self.motifs_mapping = defaultdict(self.create_int_defaultdict)
-        self.process()
+        if not os.path.exists("checkpoints/motif_list.pt"):
+            self.smiles_list = smiles_list
+            self.motif_explanation = defaultdict(int)
+            self.motif_vocab = {}
+            self.motif_mapping = defaultdict(self.create_int_defaultdict)
+            self.process()
+            torch.save(self.motif_list, "checkpoints/motif_list.pt")
+            torch.save(self.motif_vocab, "checkpoints/motif_vocab.pt")
+            torch.save(self.motif_explanation, "checkpoints/motif_explanation.pt")
+            torch.save(self.motif_mapping, "checkpoints/motif_mapping.pt")
+        else:
+            self.motif_list = torch.load("checkpoints/motif_list.pt")
+            self.motif_vocab = torch.load("checkpoints/motif_vocab.pt")
+            self.motif_explanation = torch.load("checkpoints/motif_explanation.pt")
+            self.motif_mapping = torch.load("checkpoints/motif_mapping.pt")
 
     def create_int_defaultdict(self):
         return defaultdict(int)
@@ -96,7 +108,7 @@ class MotifPiece:
         max_node_list = []
         max_edge_list = []
         tree_list = []
-        self.motif_list = [defaultdict(list) for x in self.smiles_list]
+        self.motif_list = [defaultdict(list) for _ in self.smiles_list]
         while True:
             motif_count = defaultdict(int)
             motif_indices = {}
@@ -162,6 +174,9 @@ class MotifPiece:
                 break
             merge_indices = motif_indices[selected_motif]
             self.motif_explanation[selected_motif] += len(merge_indices)
+            if selected_motif not in self.motif_vocab:
+                self.motif_vocab[selected_motif] = len(self.motif_vocab)
+
             
             
             ### Merge selected motif in the graph
@@ -242,7 +257,7 @@ class MotifPiece:
                     del v_dict[node_1], v_dict[node_2], s_dict[node_1], s_dict[node_2]
                     max_node += 1
                     max_edge += count_added_edge
-                self.motifs_mapping[id][selected_motif] += count_merged_motif
+                self.motif_mapping[id][selected_motif] += count_merged_motif
                 s_dict_list[id], v_dict_list[id], e_dict_list[id], max_node_list[id], max_edge_list[id], tree_list[id] = s_dict, v_dict, e_dict, max_node, max_edge, tree_nodes
 
             iteration += 1

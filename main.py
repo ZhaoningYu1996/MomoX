@@ -93,7 +93,7 @@ train_list = []
 test_smiles_list = []
 
 for i, data in enumerate(train_dataset):
-    smiles = to_smiles(data, True, data_name)
+    smiles = to_smiles(data, False, data_name)
     smiles = sanitize_smiles(smiles)
     if not smiles == None:
         batch = torch.zeros(data.x.size(0), dtype=torch.int64)
