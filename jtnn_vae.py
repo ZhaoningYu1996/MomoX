@@ -19,7 +19,7 @@ loss_fn = torch.nn.CrossEntropyLoss()
 
 class JTNNVAE(nn.Module):
 
-    def __init__(self, vocab, mask, hidden_size, latent_size, depthT, depthG, target_model, graph_label, device):
+    def __init__(self, vocab, mask, hidden_size, latent_size, depthT, depthG, target_model, graph_label, motif_embedding, device):
         super(JTNNVAE, self).__init__()
         self.vocab = vocab
         self.mask = mask
@@ -27,12 +27,14 @@ class JTNNVAE(nn.Module):
         self.hidden_size = hidden_size
         self.latent_size = latent_size = int(latent_size / 2) #Tree and Mol has two vectors
 
-        self.jtnn = JTNNEncoder(hidden_size, depthT, nn.Embedding(vocab.size(), hidden_size), self.device)
+        # self.jtnn = JTNNEncoder(hidden_size, depthT, nn.Embedding(vocab.size(), hidden_size), self.device)
+        self.jtnn = JTNNEncoder(hidden_size, depthT, motif_embedding, self.device)
         # print("-------->")
         # print(latent_size)
         # print(hidden_size)
         # print(vocab.size())
-        self.decoder = JTNNDecoder(vocab, hidden_size, latent_size, nn.Embedding(vocab.size(), hidden_size), self.mask, self.device)
+        # self.decoder = JTNNDecoder(vocab, hidden_size, latent_size, nn.Embedding(vocab.size(), hidden_size), self.mask, self.device)
+        self.decoder = JTNNDecoder(vocab, hidden_size, latent_size, motif_embedding, self.mask, self.device)
 
         self.jtmpn = JTMPN(hidden_size, depthG, self.device)
         self.mpn = MPN(hidden_size, depthG, self.device)
@@ -60,11 +62,13 @@ class JTNNVAE(nn.Module):
         mol_vecs = self.target_model(fatoms.to(self.device), edge_index, batch_vector, return_embedding = True)
         mol_pred = self.target_model(fatoms.to(self.device), edge_index, batch_vector, return_embedding = False)
         y = mol_pred.argmax(dim=1)
-        for i in y:
-            if i == 0:
-                print(y)
-                print("ERROR!")
-                print(stop)
+        # print(y)
+        # print(stop)
+        # for i in y:
+        #     if i == 0:
+        #         print(y)
+        #         print("ERROR!")
+        #         print(stop)
         return tree_vecs, tree_mess, mol_vecs, y
     
     def encode_from_smiles(self, smiles_list):

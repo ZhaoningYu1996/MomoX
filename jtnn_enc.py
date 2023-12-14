@@ -27,7 +27,10 @@ class JTNNEncoder(nn.Module):
         mess_graph = create_var(mess_graph, device=self.device)
         messages = create_var(torch.zeros(mess_graph.size(0), self.hidden_size), device=self.device)
 
-        fnode = self.embedding(fnode)
+        # print(fnode)
+        # fnode = self.embedding(fnode)
+        fnode = self.embedding[fnode,:]
+        # print(fnode.size())
         fmess = index_select_ND(fnode, 0, fmess)
         messages = self.GRU(messages, fmess, mess_graph)
 

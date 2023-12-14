@@ -15,9 +15,9 @@ print(motif_list[0])
 
 motif_0 = torch.load("checkpoints/motif_0.pt")
 motif_1 = torch.load("checkpoints/motif_1.pt")
-# print(len(motif_0))
-# print(len(motif_1))
-# print(stop)
+print(len(motif_0))
+print(len(motif_1))
+print(stop)
 
 train_dataset = torch.load("checkpoints/train_dataset_mutagenicity.pt")
 
@@ -30,13 +30,17 @@ train_list = []
 train_smiles = []
 
 for i, data in enumerate(train_dataset):
-    smiles = to_smiles(data, False, data_name)
+    smiles = to_smiles(data, True, data_name)
     smiles = sanitize_smiles(smiles)
     if not smiles == None:
         batch = torch.zeros(data.x.size(0), dtype=torch.int64)
         out = target_model(data.x, data.edge_index, batch)  
         pred = out.argmax(dim=1)  # Use the class with highest probability.
-        if pred == data.y:
+        # print(pred.item())
+        # print(data.y.item())
+        # print(pred==data.y)
+        # print(stop)
+        if pred.item() == data.y.item():
             train_list.append(data)
             train_smiles.append(smiles)
 
@@ -73,6 +77,7 @@ for i, data in enumerate(tqdm(train_list)):
         for motif in motif_nodes[j]:
             # print(motif_nodes[j])
             # print(motif)
+            # print(stop)
             check_added = 0
             for po_list in possible_combination:
                 check_intersection = 0
@@ -87,6 +92,7 @@ for i, data in enumerate(tqdm(train_list)):
                     check_added = 1
             if check_added == 0:
                 possible_combination.append([motif])
+
     if label == 0:
         all_train_smiles_0.append(train_smiles[i])
         all_possible_combination_0.append(possible_combination)
@@ -98,6 +104,8 @@ all_train_data_0 = []
 all_train_data_1 = []
 extended_motif_0 = []
 extended_motif_1 = []
+# print(all_train_smiles_0[:10])
+# print(stop)
 for i, possible_combination in enumerate(tqdm(all_possible_combination_0)):
     # print(possible_combination)
     smiles = all_train_smiles_0[i]

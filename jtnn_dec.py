@@ -110,7 +110,8 @@ class JTNNDecoder(nn.Module):
 
             #Clique embedding
             cur_x = create_var(torch.LongTensor(cur_x), device=self.device)
-            cur_x = self.embedding(cur_x) 
+            # cur_x = self.embedding(cur_x)
+            cur_x = self.embedding[cur_x, :]
             
             #Message passing
             cur_h_nei = torch.stack(cur_h_nei, dim=0).view(-1,MAX_NB,self.hidden_size)
@@ -161,7 +162,8 @@ class JTNNDecoder(nn.Module):
             cur_o_nei.extend([padding] * pad_len)
         
         cur_x = create_var(torch.LongTensor(cur_x), device=self.device)
-        cur_x = self.embedding(cur_x) 
+        # cur_x = self.embedding(cur_x) 
+        cur_x = self.embedding[cur_x, :]
         cur_o_nei = torch.stack(cur_o_nei, dim=0).view(-1,MAX_NB,self.hidden_size)
         cur_o = cur_o_nei.sum(dim=1)
 
@@ -228,7 +230,8 @@ class JTNNDecoder(nn.Module):
                 cur_h_nei = zero_pad
 
             cur_x = create_var(torch.LongTensor([node_x.wid]), device=self.device)
-            cur_x = self.embedding(cur_x)
+            # cur_x = self.embedding(cur_x)
+            cur_x = self.embedding[cur_x, :]
 
             #Predict stop
             cur_h = cur_h_nei.sum(dim=1)

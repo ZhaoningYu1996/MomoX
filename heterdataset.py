@@ -3,6 +3,7 @@ from motifpiece import MotifPiece
 from torch_geometric.data import InMemoryDataset, Data
 from tu2smiles import to_tudataset
 from utils import get_mol, sanitize
+from tqdm import tqdm
 
 class HeterDataset(InMemoryDataset):
     def __init__(self, root, dataset, data_name, data_smiles, model, transform=None, pre_transform=None, pre_filter=None) -> None:
@@ -10,6 +11,8 @@ class HeterDataset(InMemoryDataset):
         self.dataname = data_name
         self.data_smiles = data_smiles
         self.model = model
+        if len(self.dataset) != len(self.data_smiles):
+            print("Error!")
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load(self.processed_paths[0])
         
@@ -46,7 +49,7 @@ class HeterDataset(InMemoryDataset):
         label_0 = []
         label_1 = []
             
-        for i, data in enumerate(self.dataset):
+        for i, data in enumerate(tqdm(self.data_smiles)):
             motifs = motif_list[i].keys()
             mol = get_mol(data, False)
             mol = sanitize(mol, False)
@@ -54,23 +57,25 @@ class HeterDataset(InMemoryDataset):
             batch = torch.zeros(data.x.size(0), dtype=torch.int64)
             embedding = self.model(data.x, data.edge_index, batch, return_embedding=True)
             logit = self.model(embedding, classifier=True)
-            if logit.argmax == 0:
+
+            if logit[0].argmax() == 0:
                 label_0.append(i+num_motif)
-            elif logit.argmax == 1:
+            elif logit[0].argmax() == 1:
                 label_1.append(i+num_motif)
                 
             x.append(embedding)
             for motif in motifs:
                 id = motif_vocab[motif]
                 edge_index.append((id, i+num_motif))
-                edge_index.append((i+num_motif, id))
-        
+                # edge_index.append((i+num_motif, id))
+        print(len(x))
         x = torch.stack(x)
+        x = x.squeeze(dim=1)
         edge_index = torch.tensor(edge_index).t()
         print(len(label_0), len(label_1))
         label_0 = torch.tensor(label_0)
         label_1 = torch.tensor(label_1)
-        heter_data = Data(x, edge_index, label_0, label_1)
+        heter_data = Data(x, edge_index, label_0=label_0, label_1=label_1, motif_vocab=motif_vocab)
         data_list.append(heter_data)
 
         if self.pre_filter is not None:

@@ -28,6 +28,7 @@ parser.add_argument('--train', required=True)
 parser.add_argument('--vocab', required=True)
 parser.add_argument('--mask', required=True)
 parser.add_argument('--graph_label', required=True)
+parser.add_argument('--motif_embedding', required=True)
 parser.add_argument('--save_dir', required=True)
 parser.add_argument('--load_epoch', type=int, default=0)
 
@@ -67,7 +68,9 @@ target_model.eval()
 
 mask = torch.load(args.mask)
 
-model = JTNNVAE(vocab, mask, args.hidden_size, args.latent_size, args.depthT, args.depthG, target_model, int(args.graph_label), device).to(device)
+motif_embedding = torch.load(args.motif_embedding)
+
+model = JTNNVAE(vocab, mask, args.hidden_size, args.latent_size, args.depthT, args.depthG, target_model, int(args.graph_label), motif_embedding, device).to(device)
 
 
 # print model

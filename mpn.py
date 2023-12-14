@@ -3,10 +3,11 @@ import torch.nn as nn
 import rdkit.Chem as Chem
 import torch.nn.functional as F
 from nnutils import *
-from utils import get_mol
+from utils import get_mol, sanitize
 
 # ELEM_LIST = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca', 'Fe', 'Al', 'I', 'B', 'K', 'Se', 'Zn', 'H', 'Cu', 'Mn', 'unknown']
-ELEM_LIST = ["C", "O", "Cl", "H", "N", "F", "Br", "S", "P", "I", "Na", "K", "Li", "Ca"]
+# ELEM_LIST = ["C", "O", "Cl", "H", "N", "F", "Br", "S", "P", "I", "Na", "K", "Li", "Ca"]
+ELEM_LIST = [6, 8, 17, 1, 7, 9, 35, 16, 15, 53, 11, 19, 3, 20]
 
 # ATOM_FDIM = len(ELEM_LIST) + 6 + 5 + 4 + 1
 # BOND_FDIM = 5 + 6
@@ -28,7 +29,8 @@ def atom_features(atom):
     #         + onek_encoding_unk(atom.GetFormalCharge(), [-1,-2,1,2,0])
     #         + onek_encoding_unk(int(atom.GetChiralTag()), [0,1,2,3])
     #         + [atom.GetIsAromatic()])
-    return torch.Tensor(onek_encoding_unk(atom.GetSymbol(), ELEM_LIST))
+    # return torch.Tensor(onek_encoding_unk(atom.GetSymbol(), ELEM_LIST))
+    return torch.nn.functional.one_hot(torch.tensor(ELEM_LIST.index(atom.GetAtomicNum())), len(ELEM_LIST)).float()
 
 def bond_features(bond):
     bt = bond.GetBondType()
@@ -91,6 +93,7 @@ class MPN(nn.Module):
 
         for smiles in mol_batch:
             mol = get_mol(smiles, False)
+            mol = sanitize(mol, False)
             #mol = Chem.MolFromSmiles(smiles)
             n_atoms = mol.GetNumAtoms()
             for atom in mol.GetAtoms():

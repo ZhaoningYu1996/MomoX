@@ -18,6 +18,7 @@ parser.add_argument('--vocab', required=True)
 parser.add_argument('--model', required=True)
 parser.add_argument('--mask', required=True)
 parser.add_argument('--graph_label', required=True)
+parser.add_argument('--motif_embedding', required=True)
 
 parser.add_argument('--hidden_size', type=int, default=450)
 parser.add_argument('--latent_size', type=int, default=56)
@@ -26,7 +27,7 @@ parser.add_argument('--depthG', type=int, default=3)
 
 args = parser.parse_args()
    
-vocab = [x.strip("\r\n ") for x in open(args.vocab)] 
+vocab = [x.strip("\r\n ") for x in open(args.vocab)]
 vocab = Vocab(vocab)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -38,10 +39,16 @@ target_model.load_state_dict(torch.load(PATH))
 target_model.eval()
 
 # mask = torch.tensor([i for i in range(10)])
+# print(args.mask)
 mask = torch.load(args.mask)
 # mask = torch.tensor(mask).cuda()
+# print(mask)
+# print(len(mask))
+# print(stop)
 
-model = JTNNVAE(vocab, mask, args.hidden_size, args.latent_size, args.depthT, args.depthG, target_model, int(args.graph_label), device).to(device)
+motif_embedding = torch.load(args.motif_embedding)
+
+model = JTNNVAE(vocab, mask, args.hidden_size, args.latent_size, args.depthT, args.depthG, target_model, int(args.graph_label), motif_embedding, device).to(device)
 model.load_state_dict(torch.load(args.model))
 
 torch.manual_seed(0)

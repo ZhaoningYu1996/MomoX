@@ -7,7 +7,7 @@ class MolTreeNode(object):
 
     def __init__(self, smiles, clique=[]):
         self.smiles = smiles
-        self.mol = get_mol(self.smiles, False)
+        self.mol = sanitize(get_mol(self.smiles, False), False)
 
         self.clique = [x for x in clique] #copy
         self.neighbors = []
@@ -34,7 +34,8 @@ class MolTreeNode(object):
 
         clique = list(set(clique))
         label_mol = get_clique_mol(original_mol, clique)
-        self.label = Chem.MolToSmiles(Chem.MolFromSmiles(get_smiles(label_mol)))
+        # self.label = Chem.MolToSmiles(Chem.MolFromSmiles(get_smiles(label_mol)))
+        self.label = sanitize_smiles(get_smiles(label_mol))
 
         for cidx in clique:
             original_mol.GetAtomWithIdx(cidx).SetAtomMapNum(0)
@@ -61,7 +62,7 @@ class MolTree(object):
 
     def __init__(self, smiles, cliques, edges, vocab):
         self.smiles = smiles
-        self.mol = sanitize(get_mol(smiles, True), True)
+        self.mol = sanitize(get_mol(smiles, False), False)
 
         #Stereo Generation (currently disabled)
         #mol = Chem.MolFromSmiles(smiles)

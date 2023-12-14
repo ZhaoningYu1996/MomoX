@@ -121,13 +121,16 @@ print(len(train_smiles_list))
 heter_dataset = HeterDataset("heter_data", train_list, data_name, train_smiles_list, target_model)
 heter_data = heter_dataset[0].to(device)
 print(heter_data.x.size())
-label_list = heter_data.label_list
+# label_list = heter_data.label_list
 #
-positive_list = label_list[0]
-negative_list = label_list[1]
+positive_list = heter_data.label_0.tolist()
+negative_list = heter_data.label_1.tolist()
 length_pos = len(positive_list)
 length_neg = len(negative_list)
 intersect = set(positive_list).intersection(set(negative_list))
+print(positive_list)
+print(len(positive_list))
+print(len(negative_list))
 
 if length_pos > length_neg:
     pos = random.sample(positive_list, length_neg)
@@ -234,12 +237,16 @@ num_motifs = heter_data.x.size(0) - len(train_list)
 print(f"number of motifs: {num_motifs}")
 M_mot_mol = torch.zeros(num_motifs, len(train_list))
 M_mol_label = torch.zeros(len(train_list), dataset.num_classes)
+M_mot_dom = torch.ones((num_motifs, 2), dtype=torch.float)
 
 for i, edge in enumerate(tqdm(edge_list)):
-    if edge[0] < edge[1]:
+    if edge[0] > edge[1]:
         continue
-    motif_id = edge[0].item() - len(train_list)
-    M_mot_mol[motif_id][edge[1]] = attention_weights[i]
+    motif_id = edge[0].item()
+    M_mot_mol[motif_id][edge[1]-num_motifs] = attention_weights[i]
+    M_mot_dom[motif_id][0] += 1
+    M_mot_dom[motif_id][1] += 1
+    
 
 m = torch.nn.Softmax(dim=1)
 sig = torch.nn.Sigmoid()
@@ -247,13 +254,14 @@ train_pred = m(best_train_logit)
 test_pred = m(best_test_logit)
 print(pred.size())
 
-M_mol_label[training_indices.cpu()] = train_pred.cpu()
-M_mol_label[testing_indices.cpu()] = test_pred.cpu()
+M_mol_label[training_indices.cpu()-num_motifs] = train_pred.cpu()
+M_mol_label[testing_indices.cpu()-num_motifs] = test_pred.cpu()
 
 print(M_mot_mol)
 print(M_mol_label)
 
 ini_score = torch.matmul(M_mot_mol, M_mol_label)
+ini_score = torch.div(ini_score, M_mot_dom)
 
 # print(ini_score.size())
 # print(stop)
@@ -262,10 +270,10 @@ sig_score = sig(ini_score)
 # print(sig_score.size())
 # print(ini_score.size())
 
-score = norm_score * sig_score
-# score = ini_score
+# score = norm_score * sig_score
+score = sig_score
 
-motif_list = list(heter_data.motif_dict.keys())
+motif_list = list(heter_data.motif_vocab.keys())
 
 label_0 = sorted(zip(score[:, 0], motif_list), key=lambda x: x[0], reverse=True)
 label_0_score, sorted_label_0 = zip(*label_0)

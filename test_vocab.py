@@ -19,6 +19,7 @@ with open('vocab_0.txt', 'r') as file:
 
 mask = []
 sm = torch.nn.Softmax(dim=1)
+motif_embedding = []
 for i, smiles in enumerate(lines):
     mol = get_mol(smiles, False)
     mol = sanitize(mol, False)
@@ -26,12 +27,17 @@ for i, smiles in enumerate(lines):
     data.cuda()
     batch = torch.zeros(data.x.size(0), dtype=torch.int64).cuda()
     out = target_model(data.x, data.edge_index, batch)
+    embedding = target_model(data.x, data.edge_index, batch, return_embedding=True)
+    motif_embedding.append(embedding)
     pred = sm(out)
     if pred[0,0] > 0.9:
         mask.append(i)
 full_mask = torch.tensor([i for _ in range(len(lines))], dtype=torch.int64)
+motif_embedding = torch.stack(motif_embedding).squeeze()
+# mask = [i for i in range(8)]
 print(mask)
-# mask = [i for i in range(165)]
+print(motif_embedding.size())
+torch.save(motif_embedding, "checkpoints/motif_embedding_0.pt")
 torch.save(mask, "checkpoints/mask_0.pt")
 torch.save(full_mask, "checkpoints/full_mask_0.pt")
 print(len(mask))
@@ -48,6 +54,7 @@ with open('vocab_1.txt', 'r') as file:
 
 mask = []
 sm = torch.nn.Softmax(dim=1)
+motif_embedding = []
 for i, smiles in enumerate(lines):
     mol = get_mol(smiles, False)
     mol = sanitize(mol, False)
@@ -55,13 +62,18 @@ for i, smiles in enumerate(lines):
     data.cuda()
     batch = torch.zeros(data.x.size(0), dtype=torch.int64).cuda()
     out = target_model(data.x, data.edge_index, batch)
+    embedding = target_model(data.x, data.edge_index, batch, return_embedding=True)
+    motif_embedding.append(embedding)
     pred = sm(out)
-    if pred[0,1] > 0.9:
+    if pred[0,1] > 0.999:
         print(smiles)
         mask.append(i)
 print(mask)
 full_mask = torch.tensor([i for _ in range(len(lines))], dtype=torch.int64)
-# mask = [i for i in range(113)]
+# mask = [i for i in range(30)] + [i for i in range(1339, 1364)]
+motif_embedding = torch.stack(motif_embedding).squeeze()
+print(motif_embedding.size())
+torch.save(motif_embedding, "checkpoints/motif_embedding_1.pt")
 torch.save(mask, "checkpoints/mask_1.pt")
 torch.save(full_mask, "checkpoints/full_mask_1.pt")
 print(len(mask))

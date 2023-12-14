@@ -64,8 +64,8 @@ class MolTreeFolder(object):
             with open(fn, 'rb') as f:
                 data = pickle.load(f)
             # print(data)
-            if self.shuffle: 
-                random.shuffle(data) #shuffle data before batch
+            # if self.shuffle: 
+            #     random.shuffle(data) #shuffle data before batch
             # print(data)
             batches = [data[i : i + self.batch_size] for i in range(0, len(data), self.batch_size)]
             if len(batches[-1]) < self.batch_size:
