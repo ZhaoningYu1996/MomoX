@@ -137,37 +137,18 @@ class JTNNVAE(nn.Module):
         jtmpn_holder,batch_idx = jtmpn_holder
         # print(f"jtmpn_holder: {jtmpn_holder}")
         fatoms,fbonds,agraph,bgraph,scope,all_bonds = jtmpn_holder
-        # print(f"fatoms: {fatoms.size()}")
-        
-        # print(f"fbonds: {fbonds.size()}")
-        # print(f"agraph: {agraph}")
-        # print(f"bgraph: {bgraph}")
-        # print(f"scope: {scope}")
-        # print(stop)
 
         batch_idx = create_var(batch_idx, device=self.device)
         # print(batch_idx)
         
         # node_indices = [t[1] for t in scope]
-        
         batch_vector = torch.cat([torch.full((t[1],), i) for i, t in enumerate(scope)]).to(self.device)
-        
-        # print(batch_vector.size())
-        # print(fatoms.device.type)
         # cand_vecs = self.jtmpn(fatoms, fbonds, agraph, bgraph, scope, x_tree_mess)
-        # print(f"cand_vecs: {cand_vecs.size()}")
-        
         edge_index = torch.tensor(all_bonds, dtype=torch.long)
         edge_index = edge_index.t().contiguous().to(self.device)
         cand_vecs = self.target_model(fatoms.to(self.device), edge_index, batch_vector, return_embedding = True)
         cand_pred = self.target_model(fatoms.to(self.device), edge_index, batch_vector, return_embedding = False)
-        # print(f"cand_vecs: {cand_vecs.size()}")
-        
-        # print("------->")
-        # print(x_mol_vecs.size())
-        # print(batch_idx.size())
         x_mol_vecs = x_mol_vecs.index_select(0, batch_idx)
-        # print(x_mol_vecs.size())
         x_mol_vecs = self.A_assm(x_mol_vecs) #bilinear
         
         scores = torch.bmm(
@@ -227,7 +208,7 @@ class JTNNVAE(nn.Module):
         #currently do not support batch decoding
         assert x_tree_vecs.size(0) == 1 and x_mol_vecs.size(0) == 1
 
-        pred_root,pred_nodes = self.decoder.decode(x_tree_vecs, prob_decode)
+        pred_root,pred_nodes = self.decoder.decode(x_tree_vecs, prob_decode, self.mask)
         if len(pred_nodes) == 0: return None
         elif len(pred_nodes) == 1: return pred_root.smiles
         # elif len(pred_nodes) == 1: return None

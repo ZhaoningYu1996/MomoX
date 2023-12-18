@@ -30,7 +30,7 @@ for i, smiles in enumerate(lines):
     embedding = target_model(data.x, data.edge_index, batch, return_embedding=True)
     motif_embedding.append(embedding)
     pred = sm(out)
-    if pred[0,0] > 0.9:
+    if pred[0,0] > 0.99:
         mask.append(i)
 full_mask = torch.tensor([i for _ in range(len(lines))], dtype=torch.int64)
 motif_embedding = torch.stack(motif_embedding).squeeze()
@@ -66,7 +66,7 @@ for i, smiles in enumerate(lines):
     motif_embedding.append(embedding)
     pred = sm(out)
     if pred[0,1] > 0.999:
-        print(smiles)
+        # print(smiles)
         mask.append(i)
 print(mask)
 full_mask = torch.tensor([i for _ in range(len(lines))], dtype=torch.int64)

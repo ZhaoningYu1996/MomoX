@@ -6,6 +6,7 @@ from vocab import Vocab
 from nnutils import create_var, GRU
 from utils import enum_assemble, set_atommap
 import copy
+import random
 
 MAX_NB = 15
 MAX_DECODE_LEN = 100
@@ -55,8 +56,8 @@ class JTNNDecoder(nn.Module):
         output_vec = F.relu( V(input_vec) )
         # print(stop)
         if mode == 'word':
-            return V_o(output_vec)[:, self.mask]
-            # return V_o(output_vec)
+            # return V_o(output_vec)[:, self.mask]
+            return V_o(output_vec)
         else:
             return V_o(output_vec)
 
@@ -199,7 +200,7 @@ class JTNNDecoder(nn.Module):
 
         return pred_loss, stop_loss, pred_acc.item(), stop_acc.item()
     
-    def decode(self, x_tree_vecs, prob_decode):
+    def decode(self, x_tree_vecs, prob_decode, mask):
         assert x_tree_vecs.size(0) == 1
 
         stack = []
@@ -208,16 +209,18 @@ class JTNNDecoder(nn.Module):
         contexts = create_var( torch.LongTensor(1).zero_(), device=self.device)
 
         #Root Prediction
-        root_score = self.aggregate(init_hiddens, contexts, x_tree_vecs, 'word')
-        # print("--------->")
-        # print(root_score.size())
-        _,root_wid = torch.max(root_score, dim=1)
-        root_wid = root_wid.item()
+        # root_score = self.aggregate(init_hiddens, contexts, x_tree_vecs, 'word')
+        # _,root_wid = torch.max(root_score, dim=1)
+        # root_wid = root_wid.item()
+        
+        root_wid = random.choice(mask)
 
         root = MolTreeNode(self.vocab.get_smiles(root_wid))
         root.wid = root_wid
         root.idx = 0
         stack.append( (root, self.vocab.get_slots(root.wid)) )
+        
+        # change score function
 
         all_nodes = [root]
         h = {}
@@ -243,6 +246,9 @@ class JTNNDecoder(nn.Module):
                 backtrack = (torch.bernoulli( torch.sigmoid(stop_score) ).item() == 0)
             else:
                 backtrack = (stop_score.item() < 0) 
+            
+            # print(backtrack)
+            # print(stop)
 
             if not backtrack: #Forward: Predict next clique
                 new_h = GRU(cur_x, cur_h_nei, self.W_z, self.W_r, self.U_r, self.W_h)
@@ -255,7 +261,8 @@ class JTNNDecoder(nn.Module):
                     sort_wid = sort_wid.data.squeeze()
 
                 next_wid = None
-                for wid in sort_wid[:5]:
+                # for wid in sort_wid[:5]:
+                for wid in sort_wid:
                     slots = self.vocab.get_slots(wid)
                     node_y = MolTreeNode(self.vocab.get_smiles(wid))
                     if have_slots(fa_slot, slots) and can_assemble(node_x, node_y):
@@ -289,7 +296,9 @@ class JTNNDecoder(nn.Module):
                 h[(node_x.idx,node_fa.idx)] = new_h[0]
                 node_fa.neighbors.append(node_x)
                 stack.pop()
-
+        # print(root)
+        # print(all_nodes)
+        # print(stop)
         return root, all_nodes
 
 """
@@ -303,6 +312,9 @@ def dfs(stack, x, fa_idx):
         stack.append( (y,x,0) )
 
 def have_slots(fa_slots, ch_slots):
+    # print(fa_slots)
+    # print(ch_slots)
+    # print(stop)
     if len(fa_slots) > 2 and len(ch_slots) > 2:
         return True
     matches = []

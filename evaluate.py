@@ -8,7 +8,7 @@ def is_valid_smiles(smiles):
     mol = Chem.MolFromSmiles(smiles)
     return (mol is not None)
 
-file_path = 'mol_samples_0_4.txt'  # Replace with your file path
+file_path = 'mol_samples_0_22.txt'  # Replace with your file path
 
 with open(file_path, 'r') as file:
     lines = [line.strip() for line in file]
@@ -59,7 +59,7 @@ with torch.no_grad():
 
 print(all_logit/(len(dataset)-count))
     
-file_path = 'mol_samples_1_3.txt'  # Replace with your file path
+file_path = 'mol_samples_1_17.txt'  # Replace with your file path
 
 with open(file_path, 'r') as file:
     lines = [line.strip() for line in file]
@@ -99,6 +99,7 @@ with torch.no_grad():
         logit = softmax(cand_pred)[0, 1].item()
         if logit < 0.9:
             print(cand_pred)
+            print(logit)
             print(dataset_smiles[i])
         all_logit += logit
 
