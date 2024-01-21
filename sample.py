@@ -14,6 +14,7 @@ lg.setLevel(rdkit.RDLogger.CRITICAL)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--nsample', type=int, required=True)
+parser.add_argument('--data_name', required=True)
 parser.add_argument('--vocab', required=True)
 parser.add_argument('--model', required=True)
 parser.add_argument('--mask', required=True)
@@ -30,11 +31,11 @@ args = parser.parse_args()
 vocab = [x.strip("\r\n ") for x in open(args.vocab)]
 vocab = Vocab(vocab)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# device = torch.device("cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
-PATH = 'checkpoints/best_model_mutagenicity.pt'
-target_model = GCN(hidden_channels=64, input_channels=14, output_channels=2).to(device)
+PATH = "checkpoints/best_model_"+args.data_name+".pt"
+target_model = GCN(hidden_channels=16, input_channels=18, output_channels=2).to(device)
 target_model.load_state_dict(torch.load(PATH))
 target_model.eval()
 
@@ -46,7 +47,7 @@ mask = torch.load(args.mask)
 # print(len(mask))
 # print(stop)
 
-motif_embedding = torch.load(args.motif_embedding)
+motif_embedding = torch.load(args.motif_embedding).to(device)
 
 model = JTNNVAE(vocab, mask, args.hidden_size, args.latent_size, args.depthT, args.depthG, target_model, int(args.graph_label), motif_embedding, device).to(device)
 model.load_state_dict(torch.load(args.model))

@@ -1,6 +1,6 @@
 import random
 
-def split_list(input_list, ratio=0.9):
+def split_list(input_list, ratio=0.8):
     # Shuffle the list
     shuffled = input_list[:]
     random.shuffle(shuffled)

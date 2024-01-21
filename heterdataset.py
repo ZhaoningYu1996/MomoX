@@ -28,7 +28,7 @@ class HeterDataset(InMemoryDataset):
     def process(self):
         # Read data into huge `Data` list.
         data_list = []
-        motif_piece = MotifPiece(self.data_smiles)
+        motif_piece = MotifPiece(self.data_smiles, self.dataname)
         # print(motif_piece.motif_list)
         motif_list = motif_piece.motif_list
         motif_mapping = motif_piece.motif_mapping

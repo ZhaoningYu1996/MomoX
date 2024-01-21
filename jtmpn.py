@@ -6,12 +6,20 @@ from utils import get_mol
 import rdkit.Chem as Chem
 
 # ELEM_LIST = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca', 'Fe', 'Al', 'I', 'B', 'K', 'Se', 'Zn', 'H', 'Cu', 'Mn', 'unknown']
-ELEM_LIST = ["C", "O", "Cl", "H", "N", "F", "Br", "S", "P", "I", "Na", "K", "Li", "Ca"]
+# Mutagenicity
+# ELEM_LIST = ["C", "O", "Cl", "H", "N", "F", "Br", "S", "P", "I", "Na", "K", "Li", "Ca"]
+# PTC_MR
+ELEM_LIST = ["In", "P", "O", "N", "Na", "C", "Cl", "S", "Br", "F", "K", "Cu", "Zn", "I", "Ba", "Sn", "Pb", "Ca"]
+# PTC_MM
+# ELEM_LIST = ["In", "P", "O", "N", "Na", "C", "Cl", "S", "Br", "F", "As", "K", "B", "Cu", "Zn", "I", "Ba", "Sn", "Pb", "Ca"]
+# PTC_FM
+# ELEM_LIST = ["In", "P", "C", "O", "N", "Cl", "S", "Br", "Na", "F", "As", "K", "Cu", "I", "Ba", "Sn", "Pb", "Ca"]
 
 # ATOM_FDIM = len(ELEM_LIST) + 6 + 5 + 1
 ATOM_FDIM = len(ELEM_LIST)
 BOND_FDIM = 5 
-MAX_NB = 15
+# MAX_NB = 15
+MAX_NB = 30
 
 def onek_encoding_unk(x, allowable_set):
     if x not in allowable_set:
@@ -82,6 +90,7 @@ class JTMPN(nn.Module):
         in_bonds,all_bonds = [],[] 
         total_atoms = 0
         total_mess = len(mess_dict) + 1 #must include vec(0) padding
+        # total_mess = len(mess_dict)
         scope = []
 
         for smiles,all_nodes,ctr_node in cand_batch:

@@ -7,7 +7,16 @@ from utils import get_mol, sanitize
 
 # ELEM_LIST = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca', 'Fe', 'Al', 'I', 'B', 'K', 'Se', 'Zn', 'H', 'Cu', 'Mn', 'unknown']
 # ELEM_LIST = ["C", "O", "Cl", "H", "N", "F", "Br", "S", "P", "I", "Na", "K", "Li", "Ca"]
-ELEM_LIST = [6, 8, 17, 1, 7, 9, 35, 16, 15, 53, 11, 19, 3, 20]
+
+# Mutagenicity
+# ELEM_LIST = [6, 8, 17, 1, 7, 9, 35, 16, 15, 53, 11, 19, 3, 20]
+# PTC_MR
+ELEM_LIST = [49, 15, 8, 7, 11, 6, 17, 16, 35, 9, 19, 29, 30, 53, 56, 50, 82, 20]
+# PTC_MM
+# ELEM_LIST = [49, 15, 8, 7, 11, 6, 17, 16, 35, 9, 33, 19, 5, 29, 30, 53, 56, 50, 82, 20]
+
+# PTC_FM
+# ELEM_LIST = [49, 15, 6, 8, 7, 17, 16, 35, 11, 9, 33, 19, 29, 53, 56, 50, 82, 20]
 
 # ATOM_FDIM = len(ELEM_LIST) + 6 + 5 + 4 + 1
 # BOND_FDIM = 5 + 6

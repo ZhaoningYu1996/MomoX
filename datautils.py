@@ -72,7 +72,7 @@ class MolTreeFolder(object):
                 batches.pop()
 
             dataset = MolTreeDataset(batches, self.vocab, self.assm)
-            # print(dataset)
+            
             dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=self.num_workers, collate_fn=lambda x:x[0])
 
             for b in dataloader:

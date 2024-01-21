@@ -8,21 +8,21 @@ from mol_tree import MolTree
 import pickle
 
 data_name = "Mutagenicity"
+input_dim = 14
+hid_dim = 16
 
-motif_list = torch.load("checkpoints/motif_list.pt")
-# print(motif_list)
-print(motif_list[0])
+motif_list = torch.load("checkpoints/"+data_name+"_motif_list.pt")
 
-motif_0 = torch.load("checkpoints/motif_0.pt")
-motif_1 = torch.load("checkpoints/motif_1.pt")
-print(len(motif_0))
-print(len(motif_1))
-print(stop)
+motif_0 = torch.load("checkpoints/"+data_name+"_motif_0.pt")
+motif_1 = torch.load("checkpoints/"+data_name+"_motif_1.pt")
+# print(len(motif_0))
+# print(len(motif_1))
+# print(stop)
 
-train_dataset = torch.load("checkpoints/train_dataset_mutagenicity.pt")
+train_dataset = torch.load("checkpoints/train_dataset_"+data_name+".pt")
 
-PATH = 'checkpoints/best_model_mutagenicity.pt'
-target_model = GCN(hidden_channels=64, input_channels=14, output_channels=2)
+PATH = "checkpoints/best_model_"+data_name+".pt"
+target_model = GCN(hidden_channels=hid_dim, input_channels=input_dim, output_channels=2)
 target_model.load_state_dict(torch.load(PATH))
 target_model.eval()
 
@@ -168,11 +168,13 @@ for i, possible_combination in enumerate(tqdm(all_possible_combination_1)):
         mol_tree = tensorize(mol_tree)
         all_train_data_1.append(mol_tree)
 
+print(f"motif 0: {motif_0}")
+print(f"motif 1: {motif_1}")
 motif_0.extend(list(set(extended_motif_0)))
 motif_1.extend(list(set(extended_motif_1)))
 
-file_path_0 = 'vocab_0.txt'
-file_path_1 = 'vocab_1.txt'
+file_path_0 = data_name + '_vocab_0.txt'
+file_path_1 = data_name + '_vocab_1.txt'
 
 # Open the file in write mode ('w') or append mode ('a') if you want to keep existing content
 with open(file_path_0, 'w') as file:
@@ -186,6 +188,7 @@ with open(file_path_1, 'w') as file:
         file.write(f"{string}\n")
 
 num_splits = 1
+print("check train data 0")
 print(len(all_train_data_0))
 le = int((len(all_train_data_0)) / num_splits)
 
@@ -193,10 +196,11 @@ for split_id in range(num_splits):
     st = int(split_id * le)
     sub_data = all_train_data_0[st : st + le]
 
-    with open('processed_data/Mutagenicity_0/tensors-label-0-%d.pkl' % split_id, 'wb') as f:
+    with open("processed_data/"+data_name+"_0"+"/tensors-label-0-%d.pkl" % split_id, 'wb') as f:
         pickle.dump(sub_data, f, pickle.HIGHEST_PROTOCOL)
         
 num_splits = 1
+print("check train data 1")
 print(len(all_train_data_1))
 le = int((len(all_train_data_1)) / num_splits)
 
@@ -204,7 +208,7 @@ for split_id in range(num_splits):
     st = int(split_id * le)
     sub_data = all_train_data_1[st : st + le]
 
-    with open('processed_data/Mutagenicity_1/tensors-label-1-%d.pkl' % split_id, 'wb') as f:
+    with open("processed_data/"+data_name+"_1"+"/tensors-label-1-%d.pkl" % split_id, 'wb') as f:
         pickle.dump(sub_data, f, pickle.HIGHEST_PROTOCOL)
 
 # print(len(all_possible_combination))

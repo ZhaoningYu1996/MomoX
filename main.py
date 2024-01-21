@@ -118,7 +118,7 @@ for i, data in enumerate(test_dataset):
 
 print(len(train_smiles_list))
 # print(stop)
-heter_dataset = HeterDataset("heter_data", train_list, data_name, train_smiles_list, target_model)
+heter_dataset = HeterDataset("heter_data/Mutagenicity", train_list, data_name, train_smiles_list, target_model)
 heter_data = heter_dataset[0].to(device)
 print(heter_data.x.size())
 # label_list = heter_data.label_list
@@ -280,24 +280,26 @@ label_0_score, sorted_label_0 = zip(*label_0)
 label_1 = sorted(zip(score[:, 1], motif_list), key=lambda x: x[0], reverse=True)
 label_1_score, sorted_label_1 = zip(*label_1)
 
-print(label_0_score[:20])
-print(label_1_score[:20])
+# print(label_0_score[:20])
+# print(label_1_score[:20])
 
-print(sorted_label_0[:20])
-print(sorted_label_1[:20])
+# print(sorted_label_0[:20])
+# print(sorted_label_1[:20])
 
 final_motif_0 = []
 final_motif_1 = []
 
 for i, score in enumerate(label_0_score):
-    if score > 0.5:
+    if score >= 0.0:
         final_motif_0.append(sorted_label_0[i])
 for i, score in enumerate(label_1_score):
-    if score > 0.5:
+    if score >= 0.0:
         final_motif_1.append(sorted_label_1[i])
 
-print(final_motif_0)
-print(final_motif_1)
+print(len(label_0_score))
+print(len(final_motif_0))
+print(len(label_1_score))
+print(len(final_motif_1))
 
 torch.save(final_motif_0, "checkpoints/motif_0.pt")
 torch.save(final_motif_1, "checkpoints/motif_1.pt")
